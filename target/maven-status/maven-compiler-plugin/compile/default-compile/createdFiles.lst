@@ -1,0 +1,5 @@
+com\rest\publicpoll\AdjustPollDatabase.class
+com\rest\publicpoll\PollComment.class
+com\rest\publicpoll\PollAnswer.class
+com\rest\publicpoll\PollRestfulService.class
+com\rest\publicpoll\Poll.class
