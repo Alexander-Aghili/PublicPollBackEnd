@@ -14,7 +14,8 @@ import org.json.JSONObject;
 
 /*
  * TODO:
- * - Add Comments + comment infrastructure
+ * - Comments: Add UserID for user
+ * - Answers: Add UserIDs in list for each answer
  */
 
 /*

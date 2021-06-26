@@ -2,6 +2,8 @@ package com.rest.publicpoll;
 
 import java.sql.Date;
 
+import org.json.JSONObject;
+
 /*
  * Copyright © 2021 Alexander Aghili - All Rights Reserved
  * Unauthorized copying of this file, via any medium is strictly prohibited
@@ -15,10 +17,19 @@ public class BirthDay
 	private int month;
 	private int year;
 	
-	public BirthDay(int day, int month, int year) {
+	public BirthDay(int year, int month, int day) {
 		this.day = day;
 		this.month = month;
 		this.year = year;
+	}
+	
+	public BirthDay(Date date) {
+		String dateString = date.toString();
+		int firstDash = dateString.indexOf("-");
+		int secondDash = dateString.lastIndexOf("-");
+		year = Integer.parseInt(dateString.substring(0, firstDash));
+		month = Integer.parseInt(dateString.substring(firstDash + 1, secondDash));
+		day = Integer.parseInt(dateString.substring(secondDash + 1));
 	}
 
 	public int getDay() {
@@ -49,6 +60,19 @@ public class BirthDay
 	public Date toSQLDate() {
 		String dateString = String.format("%d-%02d-%02d", year, month, day);
 		return Date.valueOf(dateString);
+	}
+	
+	public String toJSON() {
+		JSONObject jo = new JSONObject();
+		jo.put("year", year);
+		jo.put("month", month);
+		jo.put("day", day);
+		return jo.toString();
+	}
+	
+	@Override
+	public String toString() {
+		return year+"-"+month+"-"+day;
 	}
 	
 }

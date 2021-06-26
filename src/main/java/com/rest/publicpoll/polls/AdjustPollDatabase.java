@@ -9,6 +9,9 @@ import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.Random;
 
+import org.json.JSONArray;
+import org.json.JSONObject;
+
 import com.rest.publicpoll.CreateID;
 import com.rest.publicpoll.Poll;
 import com.rest.publicpoll.PollAnswer;
@@ -91,6 +94,10 @@ public class AdjustPollDatabase
 	 */
 	public static String addNewPoll(Poll poll) {
 		String response = ERROR_RESPONSE;
+		if (!checkValidPoll(poll))
+		{
+			return "<title>Invalid Poll. Add information.</title>";
+		}
 		try {
 			initializeDB();
 			
@@ -107,6 +114,18 @@ public class AdjustPollDatabase
 			close();
 		}
 		return response;
+	}
+	
+	private static boolean checkValidPoll(Poll poll) {
+		if (poll.getPollQuestion().equals("")) {
+			return false;
+		}
+		for (int i = 0; i < poll.getAnswers().size(); i++) {
+			if (poll.getAnswers().get(i).getAnswer().equals("")) {
+				return false;
+			}
+		}
+		return true;
 	}
 		
 	//Can be expanded upon later
@@ -173,6 +192,7 @@ public class AdjustPollDatabase
 		while (results.next()) {
 			question += results.getString("pollQuestion");
 		}
+		//question = results.next().getString("pollQuestion"); Test this later cuz this is better but idk if it works
 		return question;
 	}
 	
@@ -234,7 +254,32 @@ public class AdjustPollDatabase
 		return response;
 	}
 	
-	
+	/*
+	 * Im not really sure which way is faster, querying all of the polls
+	 *  and getting the ones I need through a search on the server or
+	 *  just querying one by one in the database. No clue, just gunna go with
+	 *  database for now because its easier.
+	 *  
+	 * Query database with each pollID, get polls and put them in arraylist,
+	 * make an jsonarray with the polls and return it in string form.
+	 */
+	public static String getPollsJSONFromPollIDs(ArrayList<String> pollIDs) {
+		String response = "";
+		try {
+			ArrayList<Poll> polls = new ArrayList<Poll>();
+			initializeDB();
+			response = "{\"polls\": [";
+			for (int i = 0; i < pollIDs.size(); i++) {
+				String pollID = pollIDs.get(i);
+				response += getPollFromID(pollID).toJSON() + ",";
+			}
+			response = response.substring(0, response.length() - 1);
+			response += "]}";
+		} catch (ClassNotFoundException | SQLException | NoPollFoundException e) {
+			e.printStackTrace();
+		}
+		return response;
+	}
 	
 	public static String addOneCountToAnswer(PollAnswer pollAnswer) {
 		String response = "";

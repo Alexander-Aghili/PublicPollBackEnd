@@ -1,5 +1,7 @@
 package com.rest.publicpoll.polls;
 
+import java.util.ArrayList;
+
 import javax.ws.rs.Consumes;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
@@ -9,6 +11,7 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
+import org.json.JSONArray;
 import org.json.JSONObject;
 
 import com.rest.publicpoll.Poll;
@@ -102,6 +105,23 @@ public class PollRestfulService
 	public Response getPolls() {
 		String jsonResponse = AdjustPollDatabase.getRandomListOfPolls();
 		return Response.status(200).entity(jsonResponse).build();
+	}
+	
+	
+	@Path("/getPollsFromPollIDs")
+	@POST
+	@Consumes(MediaType.APPLICATION_JSON)
+	@Produces(MediaType.APPLICATION_JSON)
+	public Response getPollsFromPollIDs(String pollIDsJSON) {
+		ArrayList<String> pollIDs = new ArrayList<String>();
+		JSONObject jo = new JSONObject(pollIDsJSON);
+		JSONArray ja = (JSONArray) jo.get("pollIDs");
+		for (int i = 0; i < ja.length(); i++) {
+			pollIDs.add(ja.getString(i));
+		}
+		String jsonResponse = AdjustPollDatabase.getPollsJSONFromPollIDs(pollIDs);
+		return Response.status(201).entity(jsonResponse).build();
+		
 	}
 	
 	
