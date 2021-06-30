@@ -1,5 +1,7 @@
 package com.rest.publicpoll;
 
+import java.util.ArrayList;
+
 import org.json.JSONObject;
 
 /*
@@ -20,7 +22,6 @@ public class PollAnswer {
 	public PollAnswer(String letter, String answer) {
 		this.letter = letter;
 		this.answer = answer;
-		this.numClicked = 0;
 	}
 	
 	public PollAnswer(String letter, String answer, int numClicked) {

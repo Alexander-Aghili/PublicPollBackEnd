@@ -112,7 +112,7 @@ public class PollRestfulService
 	@POST
 	@Consumes(MediaType.APPLICATION_JSON)
 	@Produces(MediaType.APPLICATION_JSON)
-	public Response getPollsFromPollIDs(String pollIDsJSON) {
+	public Response getPollsFromPollIDs(String pollIDsJSON) { 
 		ArrayList<String> pollIDs = new ArrayList<String>();
 		JSONObject jo = new JSONObject(pollIDsJSON);
 		JSONArray ja = (JSONArray) jo.get("pollIDs");

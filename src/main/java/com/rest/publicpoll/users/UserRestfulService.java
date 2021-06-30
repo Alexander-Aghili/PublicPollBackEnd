@@ -1,5 +1,7 @@
 package com.rest.publicpoll.users;
 
+import java.util.ArrayList;
+
 import javax.ws.rs.Consumes;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
@@ -9,6 +11,7 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
+import org.json.JSONArray;
 import org.json.JSONObject;
 
 import com.rest.publicpoll.User;
@@ -60,5 +63,19 @@ public class UserRestfulService {
 		return Response.status(200).entity(jsonResponse).build();
 	}
 	
+	@Path("/getUsers")
+	@Consumes(MediaType.APPLICATION_JSON)
+	@Produces(MediaType.APPLICATION_JSON)
+	@POST
+	public Response getUsersByIDs(String JSON) {
+		JSONObject jo = new JSONObject(JSON);
+		JSONArray ja = jo.getJSONArray("userIDs");
+		ArrayList<String> uids = new ArrayList<String>();
+		for (int i = 0; i < ja.length(); i++) {
+			uids.add(ja.getString(i));
+		}
+		String jsonResponse = AdjustUsersDatabase.getUsersJSONByIDs(uids);
+		return Response.status(201).entity(jsonResponse).build();
+	}
 	
 }

@@ -204,7 +204,8 @@ public class AdjustUsersDatabase
 	 * - User receives the polls in JSON and constructs objects and displays information as needed
 	 * 
 	 * Benefits:
-	 * - If querying in a search bar for example, you don't recieve all of the poll information for everyone even if you don't click on them,
+	 * - If querying in a search bar or showing someone in a comment for example,
+	 * 	 	you don't recieve all of the poll information for everyone even if you don't click on them,
 	 * 		instead, only when clicked on can the other request be made. This speeds up the process of data.
 	 * 	
 	 * Drawbacks:
@@ -262,6 +263,25 @@ public class AdjustUsersDatabase
 		}
 		
 		return new User(id, username, email, birthday, firstname, lastname, gender, profilePictureLink, savedPolls, recentPolls, myPolls);
+	}
+	
+	public static String getUsersJSONByIDs(ArrayList<String> uids) {
+		String response = "";
+		try {
+			initializeDB();
+			response = "{\"users\": [";
+			for (int i = 0; i < uids.size(); i++) {
+				response += getUserJSONByID(uids.get(i)) + ",";
+			}
+			response = response.substring(0, response.length() - 1) + "]}";
+		} catch (ClassNotFoundException | SQLException e) {
+			e.printStackTrace();
+		} finally {
+			close();
+		}
+		return response;
+
+		
 	}
 	
 	//All methods must init the DB when starting up to establish a connection.
