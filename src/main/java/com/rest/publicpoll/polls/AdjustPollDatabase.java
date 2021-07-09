@@ -77,7 +77,7 @@ public class AdjustPollDatabase
 	/*
 	 * SQL Table Creation Statements:
 	 * CREATE TABLE `comments` ( `id` int auto_increment not null, `pollID` varchar(400) NOT NULL,   `comment` varchar(1024) DEFAULT NULL, `user` varchar(1024) DEFAULT NULL,    PRIMARY KEY (`id`) )
-	 * CREATE TABLE `polls` (   `id` varchar(400) NOT NULL,   `pollQuestion` varchar(1024) DEFAULT NULL,     PRIMARY KEY (`id`) );
+	 * CREATE TABLE `polls` (   `id` varchar(400) NOT NULL,   `pollQuestion` varchar(1024) DEFAULT NULL,  `isPrivate` bool   PRIMARY KEY (`id`) );
 	 * CREATE TABLE `answers` (`pollID` varchar (400) NOT NULL, `letter` varchar(16) NOT NULL, `answer` varchar (1024) DEFAULT NULL, `totalClicked` INT DEFAULT NULL, PRIMARY KEY (`pollID`, `letter`));
 	 */
 	
@@ -130,9 +130,10 @@ public class AdjustPollDatabase
 		
 	//Can be expanded upon later
 	private static void addPollToDatabase(Poll poll, String pollID) throws SQLException {
-		preparedStatement = connect.prepareStatement("INSERT INTO polldb.polls VALUES(?, ?)");
+		preparedStatement = connect.prepareStatement("INSERT INTO polldb.polls VALUES(?, ?, ?)");
 		preparedStatement.setString(1, pollID);
 		preparedStatement.setString(2, poll.getPollQuestion());
+		preparedStatement.setBoolean(3, poll.isPrivate());
 		preparedStatement.executeUpdate();
 	}
 	
@@ -174,26 +175,21 @@ public class AdjustPollDatabase
 	 * Makes a new Poll and returns the JSON form
 	 */
 	private static Poll getPollFromID(String pollID) throws SQLException, NoPollFoundException {
-			String pollQuestion = getPollQuestionFromID(pollID);
-			if (pollQuestion.equals("")) {
-				throw new NoPollFoundException(pollID);
-			}
-			ArrayList<PollAnswer> answers = getPollAnswersFromID(pollID);
-			ArrayList<PollComment> comments = getPollCommentsFromID(pollID);
-			return new Poll(pollID, pollQuestion, answers, comments);
-	}
-	
-	private static String getPollQuestionFromID(String pollID) throws SQLException {
-		String question = "";
+		
 		preparedStatement = connect.prepareStatement("SELECT * FROM polldb.polls WHERE pollID = ?");
 		preparedStatement.setString(1, pollID);
 		ResultSet results = preparedStatement.executeQuery();
-		//Should only get one Poll, no idea why I did +=
-		while (results.next()) {
-			question += results.getString("pollQuestion");
+		results.next();
+		String pollQuestion = results.getString("pollQuestion"); 
+		boolean isPrivate = results.getBoolean("isPrivate");
+		
+		if (pollQuestion.equals("")) { 
+			throw new NoPollFoundException(pollID);
 		}
-		//question = results.next().getString("pollQuestion"); Test this later cuz this is better but idk if it works
-		return question;
+		ArrayList<PollAnswer> answers = getPollAnswersFromID(pollID);
+		ArrayList<PollComment> comments = getPollCommentsFromID(pollID);
+		
+		return new Poll(pollID, pollQuestion, answers, comments, isPrivate);
 	}
 	
 	private static ArrayList<PollAnswer> getPollAnswersFromID(String pollID) throws SQLException {
@@ -234,7 +230,8 @@ public class AdjustPollDatabase
 		try {
 			initializeDB();
 			//Just go through all
-			preparedStatement = connect.prepareStatement("SELECT * FROM polldb.polls;");
+			preparedStatement = connect.prepareStatement("SELECT * FROM polldb.polls WHERE isPrivate = ?");
+			preparedStatement.setBoolean(1, false);
 			ResultSet results = preparedStatement.executeQuery();
 			response = "{\"polls\": [";
 			while (results.next()) {
@@ -305,6 +302,7 @@ public class AdjustPollDatabase
 		String response = "";
 		try {
 			initializeDB();
+			// Add Comment
 			preparedStatement = connect.prepareStatement("INSERT INTO polldb.comments VALUES(default, ?, ?, ?)");
 			preparedStatement.setString(1, pollComment.getPollID());
 			preparedStatement.setString(2, pollComment.getComment());
@@ -341,6 +339,24 @@ public class AdjustPollDatabase
 		preparedStatement = connect.prepareStatement("DELETE FROM polldb." + table + " WHERE pollID = ?");
 		preparedStatement.setString(1, poll.getPollID());
 		preparedStatement.executeUpdate();
+	}
+	
+	public static String deleteComment(String commentIDString) {
+		String response = "";
+		try {
+			initializeDB();
+			int id = Integer.parseInt(commentIDString);
+			preparedStatement = connect.prepareStatement("DELETE FROM polldb.comments WHERE id = ?");
+			preparedStatement.setInt(1, id);
+			preparedStatement.executeUpdate();
+			response = "ok";
+		} catch (Exception e) {
+			e.printStackTrace();
+			response = "error";
+		} finally {
+			close();
+		}
+		return response;
 	}
 	
 	//All methods must init the DB when starting up to establish a connection.

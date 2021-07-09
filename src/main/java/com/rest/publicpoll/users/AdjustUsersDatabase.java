@@ -284,6 +284,26 @@ public class AdjustUsersDatabase
 		
 	}
 	
+	public static String addUserPolls(String userID, String pollID, int type) {
+		String response = "";
+		
+		try {
+			initializeDB();
+			preparedStatement = connect.prepareStatement("INSERT INTO usersdb.userpolls VALUES(?, ?, ?)");
+			preparedStatement.setString(1, userID);
+			preparedStatement.setString(2, pollID);
+			preparedStatement.setInt(3, type);
+			preparedStatement.executeUpdate();
+			response = "ok";
+		} catch (ClassNotFoundException | SQLException e) {
+			e.printStackTrace();
+		} finally {
+			close();
+		}
+		
+		return response;
+	}
+	
 	//All methods must init the DB when starting up to establish a connection.
 	private static void initializeDB() throws ClassNotFoundException, SQLException {
 		Class.forName("com.mysql.cj.jdbc.Driver");

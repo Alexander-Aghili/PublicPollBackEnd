@@ -32,20 +32,23 @@ public class Poll {
 	private String pollQuestion;
 	private ArrayList<PollAnswer> answers;
 	private ArrayList<PollComment> comments;
+	private boolean isPrivate;
 	
 	//All info available
-	public Poll(String pollID, String pollQuestion, ArrayList<PollAnswer> answers, ArrayList<PollComment> comments) {
+	public Poll(String pollID, String pollQuestion, ArrayList<PollAnswer> answers, ArrayList<PollComment> comments, boolean isPrivate) {
 		this.pollID = pollID;
 		this.pollQuestion = pollQuestion;
 		this.answers = answers;
 		this.comments = comments;
+		this.isPrivate = isPrivate;
 	}
 
 	//First created, no pollID and no comments.
-	public Poll(String pollQuestion, ArrayList<PollAnswer> answers) {
+	public Poll(String pollQuestion, ArrayList<PollAnswer> answers, boolean isPrivate) {
 		this.pollQuestion = pollQuestion;
 		this.answers = answers;
 		this.comments = new ArrayList<PollComment>();
+		this.isPrivate = isPrivate;
 	}
 
 	public ArrayList<PollComment> getComments() {
@@ -111,7 +114,7 @@ public class Poll {
 				poll += pollCommentJSON;
 			}
 		}
-		poll += " ]}";
+		poll += " ], \"isPrivate\": " + isPrivate + "}";
 		return poll;
 	}
 	
@@ -121,16 +124,26 @@ public class Poll {
 		String pollQuestion = (String) pollJO.get("question");
 		ArrayList<PollAnswer> answers = getAnswersFromJSON(pollJO, pollID);
 		ArrayList<PollComment> comments = getCommentsFromJSON(pollJO, pollID);
-		return new Poll(pollID, pollQuestion, answers, comments);
+		boolean isPrivate = pollJO.getBoolean("isPrivate");
+		return new Poll(pollID, pollQuestion, answers, comments, isPrivate);
 	}
 	
 	public static Poll fromJSONCreation(String pollJSON) {
 		JSONObject pollJO = new JSONObject(pollJSON);
 		String pollQuestion = (String) pollJO.get("question");
 		ArrayList<PollAnswer> answers = getAnswersFromJSON(pollJO);
-		return new Poll(pollQuestion, answers);
+		boolean isPrivate = pollJO.getBoolean("isPrivate");
+		return new Poll(pollQuestion, answers, isPrivate);
 	}
 	
+	public boolean isPrivate() {
+		return isPrivate;
+	}
+
+	public void setPrivate(boolean isPrivate) {
+		this.isPrivate = isPrivate;
+	}
+
 	private static ArrayList<PollAnswer> getAnswersFromJSON(JSONObject pollJSON, String pollID) {
 		ArrayList<PollAnswer> answersList = new ArrayList<PollAnswer>();
 		JSONArray answersJA = (JSONArray) pollJSON.get("answers");

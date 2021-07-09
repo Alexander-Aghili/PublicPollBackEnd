@@ -78,4 +78,16 @@ public class UserRestfulService {
 		return Response.status(201).entity(jsonResponse).build();
 	}
 	
+	@Path("/addUserPolls")
+	@Consumes(MediaType.APPLICATION_JSON)
+	@Produces(MediaType.TEXT_PLAIN)
+	@POST
+	public Response addUserInfo(String JSON) {
+		JSONObject jo = new JSONObject(JSON);
+		String userID = jo.getString("userID");
+		String pollID = jo.getString("pollID");
+		int type = jo.getInt("type");
+		return Response.status(201).entity(AdjustUsersDatabase.addUserPolls(userID, pollID, type)).build();
+	}
+	
 }

@@ -99,6 +99,14 @@ public class PollRestfulService
 		return Response.status(201).entity(jsonResponse).build();
 	}
 	
+	@Path("/deleteComment")
+	@POST
+	@Consumes(MediaType.TEXT_PLAIN)
+	@Produces(MediaType.TEXT_PLAIN)
+	public Response deleteComment(String id) {
+		return Response.status(201).entity(AdjustPollDatabase.deleteComment(id)).build();
+	}
+	
 	@Path("/getPolls")
 	@GET
 	@Produces(MediaType.APPLICATION_JSON)
