@@ -13,6 +13,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.sql.Timestamp;
 import java.util.ArrayList;
 
 import com.rest.publicpoll.BirthDay;
@@ -30,17 +31,18 @@ import com.rest.publicpoll.User;
 public class AdjustUsersDatabase 
 {
 	
-	private static Connection connect = null;
-	private static Statement statement = null;
-	private static ResultSet resultSet = null;
-	private static PreparedStatement preparedStatement = null;
+	private Connection connect = null;
+	private Statement statement = null;
+	private ResultSet resultSet = null;
+	private PreparedStatement preparedStatement = null;
 	
 	//Values are hidden, if using, put in appropriate username and password
-	private static final String USERNAME = "root";
-	private static final String PASSWORD = "alexWa0720";
-	private static final String SQL_DOMAIN = "localhost:3306";
+	private final String USERNAME = "root";
+	private final String PASSWORD = "alexWa0720";
+	private final String SQL_DOMAIN = "localhost:3306";
 	
-	private static final int ID_LENGTH = 12;
+	private final int ID_LENGTH = 12;
+	
 	
 	
 	/*
@@ -60,7 +62,7 @@ public class AdjustUsersDatabase
 		);
 		
 		type KEY:
-		1 - savedPolls
+		4 - savedPolls
 		2 - recentlyRespondedToPolls
 		3 - myPolls
 		
@@ -68,12 +70,22 @@ public class AdjustUsersDatabase
 		create table userPolls(
 			`userID` varchar(400),
 			`pollID` varchar(400),
-			`type` INT
+			`type` INT,
+			`timeRef` DATETIME,
 		);
 		
 	 */
+	public AdjustUsersDatabase() {}
+	public AdjustUsersDatabase(boolean multipleRequests) {
+		try {
+			initializeDB();
+		} catch (ClassNotFoundException | SQLException e) {
+			e.printStackTrace();
+		}
+		//Make sure to close outside yourself if you are doing a multirequest type instance
+	}
 	
-	public static String createNewUser(User user) {
+	public String createNewUser(User user) {
 		String response = "";
 		
 		try {
@@ -92,7 +104,7 @@ public class AdjustUsersDatabase
 		return response;
 	}
 	
-	private static void addUserToDatabase(User user, String id) throws SQLException {
+	private void addUserToDatabase(User user, String id) throws SQLException {
 		preparedStatement = connect.prepareStatement("INSERT INTO usersdb.users VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?)");
 		preparedStatement.setString(1, id);
 		preparedStatement.setString(2, user.getUsername());
@@ -106,12 +118,13 @@ public class AdjustUsersDatabase
 		preparedStatement.executeUpdate();
 	}
 	
-	public static String verifyUserData(String email, String username) {
-		String response = "ok";
+	public String verifyUserData(String email, String username) {
+		String response = "";
 		try {
 			initializeDB();
-			checkExists("email", email);
-			checkExists("username", username);
+			if (email != "") checkExists("email", email);
+			if (username != "") checkExists("username", username);
+			response = "ok";
 		} catch (ClassNotFoundException | SQLException e) {
 			e.printStackTrace();
 		} catch (UserDataExistsException e) {
@@ -124,7 +137,7 @@ public class AdjustUsersDatabase
 	}
 	
 	//Throws DataExistsException is data exists, otherwise leaves the method.	
-	private static void checkExists(String parameter, String data) throws SQLException, UserDataExistsException { 
+	public void checkExists(String parameter, String data) throws SQLException, UserDataExistsException { 
 		preparedStatement = connect.prepareStatement("SELECT * FROM usersdb.users WHERE " + parameter + " = ?");
  		preparedStatement.setString(1, data);
 		ResultSet results = preparedStatement.executeQuery();
@@ -132,8 +145,36 @@ public class AdjustUsersDatabase
 			throw new UserDataExistsException(parameter);
 	}
 	
+	public String editUserData(String userID, String key, Object value) {
+		String response = "";
+		try {
+			initializeDB();
+			preparedStatement = connect.prepareStatement("UPDATE users SET " + key + " = ? WHERE id = ?");
+			preparedStatement.setObject(1, value);
+			preparedStatement.setString(2, userID);
+			preparedStatement.executeUpdate();
+		} catch (ClassNotFoundException | SQLException e) {
+			e.printStackTrace();
+		} finally {
+			close();
+		}
+		
+		return response;
+	}
 	
-	public static String savePoll(String table, String userID, String pollID) {
+	public void editUserDataMultiRequest(String userID, String key, Object value) {
+		try {
+			preparedStatement = connect.prepareStatement("UPDATE users SET " + key + " = ? WHERE id = ?");
+			preparedStatement.setObject(1, value);
+			preparedStatement.setString(2, userID);
+			preparedStatement.executeUpdate();
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+	}
+	
+	
+	public String savePoll(String table, String userID, String pollID) {
 		String response = "";
 		
 		try {
@@ -154,7 +195,7 @@ public class AdjustUsersDatabase
 	//Returns "info error" if error is with username or password
 	//Returns "regular error" if server error
 	//Returns id is no errors.
-	public static String signInWithUsernameAndPassword(String username, String password) {
+	public String signInWithUsernameAndPassword(String username, String password) {
 		String response = "";
 		try {
 			initializeDB();
@@ -212,7 +253,7 @@ public class AdjustUsersDatabase
 	 * - Multiple requests for data that could be sent once.
 	 * 
 	 */
-	public static String getUserJSONByID(String id) {
+	public String getUserJSONByID(String id) {
 		String response = "";
 		try {
 			initializeDB();
@@ -226,7 +267,7 @@ public class AdjustUsersDatabase
 	}
 	
 	//Maybe make NoUserFoundException and do the same thing the NoPollFoundException does...
-	private static User getUserByID(String id) throws SQLException {
+	private User getUserByID(String id) throws SQLException {
 		ArrayList<String> savedPolls = new ArrayList<String>();
 		ArrayList<String> recentPolls = new ArrayList<String>();
 		ArrayList<String> myPolls = new ArrayList<String>();
@@ -265,7 +306,7 @@ public class AdjustUsersDatabase
 		return new User(id, username, email, birthday, firstname, lastname, gender, profilePictureLink, savedPolls, recentPolls, myPolls);
 	}
 	
-	public static String getUsersJSONByIDs(ArrayList<String> uids) {
+	public String getUsersJSONByIDs(ArrayList<String> uids) {
 		String response = "";
 		try {
 			initializeDB();
@@ -284,14 +325,79 @@ public class AdjustUsersDatabase
 		
 	}
 	
-	public static String addUserPolls(String userID, String pollID, int type) {
+	public String addUserPoll(String userID, String pollID, int type) {
 		String response = "";
-		
 		try {
 			initializeDB();
-			preparedStatement = connect.prepareStatement("INSERT INTO usersdb.userpolls VALUES(?, ?, ?)");
+			boolean exists = checkUserPollExists(userID, pollID, type);
+			
+			if (exists)
+				throw new UserDataExistsException("UserPollType");
+			System.out.println(userID + " " + pollID + " " + type);
+			preparedStatement = connect.prepareStatement("INSERT INTO usersdb.userpolls VALUES(?, ?, ?, ?)");
 			preparedStatement.setString(1, userID);
 			preparedStatement.setString(2, pollID);
+			preparedStatement.setInt(3, type);
+			preparedStatement.setTimestamp(4, new Timestamp(System.currentTimeMillis()));
+			preparedStatement.executeUpdate();
+			response = "ok";
+		} catch (ClassNotFoundException | SQLException | UserDataExistsException e) {
+			e.printStackTrace();
+		} finally {
+			close();
+		}
+		return response;
+	}
+	
+	private boolean checkUserPollExists(String userID, String pollID, int type) throws SQLException {
+		preparedStatement = connect.prepareStatement("SELECT * FROM usersdb.userpolls WHERE pollID = ? AND userID = ? AND type = ?");
+		preparedStatement.setString(1, pollID);
+		preparedStatement.setString(2, userID);
+		preparedStatement.setInt(3, type);
+		ResultSet results = preparedStatement.executeQuery();
+		if (results.isBeforeFirst()) {
+			return true;
+		}
+		return false;
+	}
+	
+	public String deletePollFromUserPolls(String id) {
+		String response = "";
+		try {
+			initializeDB();
+			preparedStatement = connect.prepareStatement("DELETE FROM userpolls WHERE pollID = ?");
+			preparedStatement.setString(1, id);
+			preparedStatement.executeUpdate();
+			response = "ok";
+		} catch (ClassNotFoundException | SQLException e) {
+			e.printStackTrace();
+		} finally {
+			close();
+		}
+		return response;
+	}
+	
+	public String checkUserPollExistsResponse(String userID, String pollID, int type) {
+		String response = "false";
+		try {
+			initializeDB();
+			boolean exists = checkUserPollExists(userID, pollID, type+3);
+			if (exists) response = "true";
+		} catch (ClassNotFoundException | SQLException e) {
+			e.printStackTrace();
+		} finally {
+			close();
+		}
+		return response;
+	}
+	
+	public String deleteUserPoll(String userID, String pollID, int type) {
+		String response = "";
+		try {
+			initializeDB();
+			preparedStatement = connect.prepareStatement("DELETE FROM userpolls WHERE pollID = ? AND userID = ? AND type = ?");
+			preparedStatement.setString(1, pollID);
+			preparedStatement.setString(2, userID);
 			preparedStatement.setInt(3, type);
 			preparedStatement.executeUpdate();
 			response = "ok";
@@ -300,19 +406,41 @@ public class AdjustUsersDatabase
 		} finally {
 			close();
 		}
-		
+		return response;
+	}
+	
+	public String deleteUser(String userID) {
+		String response = "";
+		try {
+			initializeDB();
+			preparedStatement = connect.prepareStatement("DELETE FROM usersdb.userpolls WHERE userID = ?");
+			preparedStatement.setString(1, userID);
+			preparedStatement.executeUpdate();
+			
+			//Maybe delete from poll?
+			
+			preparedStatement = connect.prepareStatement("DELETE FROM usersdb.users WHERE userID = ?");
+			preparedStatement.setString(1, userID);
+			preparedStatement.executeUpdate();
+			
+			response = "ok";
+		} catch (ClassNotFoundException | SQLException e) {
+			e.printStackTrace();
+		} finally {
+			close();
+		}
 		return response;
 	}
 	
 	//All methods must init the DB when starting up to establish a connection.
-	private static void initializeDB() throws ClassNotFoundException, SQLException {
+	private void initializeDB() throws ClassNotFoundException, SQLException {
 		Class.forName("com.mysql.cj.jdbc.Driver");
 		connect = DriverManager.getConnection("jdbc:mysql://" + SQL_DOMAIN + "/usersdb", USERNAME, PASSWORD);
 		statement = connect.createStatement();
 	}
 	
 	//All must close the DB at the end to ensure no leakage.
-	private static void close() {
+	public void close() {
 		try {
 			if(resultSet != null) {
 				resultSet.close();

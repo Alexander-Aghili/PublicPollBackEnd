@@ -16,6 +16,7 @@ import com.rest.publicpoll.CreateID;
 import com.rest.publicpoll.Poll;
 import com.rest.publicpoll.PollAnswer;
 import com.rest.publicpoll.PollComment;
+import com.rest.publicpoll.users.AdjustUsersDatabase;
 
 /*
  * Copyright © 2021 Alexander Aghili - All Rights Reserved
@@ -40,19 +41,19 @@ import com.rest.publicpoll.PollComment;
 public class AdjustPollDatabase 
 {
 	
-	private static Connection connect = null;
-	private static Statement statement = null;
-	private static ResultSet resultSet = null;
-	private static PreparedStatement preparedStatement = null;
+	private Connection connect = null;
+	private Statement statement = null;
+	private ResultSet resultSet = null;
+	private PreparedStatement preparedStatement = null;
 	
 	//Values are hidden, if using, put in appropriate username and password
-	private static final String USERNAME = "root";
-	private static final String PASSWORD = "alexWa0720";
+	private final String USERNAME = "root";
+	private final String PASSWORD = "alexWa0720";
 	//Sql domain, in this case is the AWS, could be localhost.
-	private static final String SQL_DOMAIN = "localhost:3306";
+	private final String SQL_DOMAIN = "localhost:3306";
 	
-	private static final int ID_LENGTH = 10;
-	private static final String ERROR_RESPONSE = "<title>HTTP Error 500 - Internal Service Error</title>";
+	private final int ID_LENGTH = 10;
+	private final String ERROR_RESPONSE = "<title>HTTP Error 500 - Internal Service Error</title>";
 	
 	
 	/*
@@ -62,23 +63,29 @@ public class AdjustPollDatabase
 	 * 	polls:
 	 * 		pollID: String
 	 * 		pollQuestion: String
+	 * 		isPrivate: boolean
+	 * 		creatorID: String
 	 * 	answers:
 	 * 		pollID: String
 	 * 		letter: String
 	 * 		answer: String
-	 * 		totalClicked: INT
 	 * 	comments:
 	 * 		id: INT
 	 * 		pollID: String
 	 * 		comment: String
 	 * 		user: String
+	 * 	userResponses:
+	 * 		userID: String
+	 * 		pollID: String
+	 * 		letter: String
 	 */
 	
 	/*
 	 * SQL Table Creation Statements:
 	 * CREATE TABLE `comments` ( `id` int auto_increment not null, `pollID` varchar(400) NOT NULL,   `comment` varchar(1024) DEFAULT NULL, `user` varchar(1024) DEFAULT NULL,    PRIMARY KEY (`id`) )
-	 * CREATE TABLE `polls` (   `id` varchar(400) NOT NULL,   `pollQuestion` varchar(1024) DEFAULT NULL,  `isPrivate` bool   PRIMARY KEY (`id`) );
+	 * CREATE TABLE `polls` (   `id` varchar(400) NOT NULL,   `pollQuestion` varchar(1024) DEFAULT NULL,  `isPrivate` bool, `creatorID` varchar(400)   PRIMARY KEY (`id`) );
 	 * CREATE TABLE `answers` (`pollID` varchar (400) NOT NULL, `letter` varchar(16) NOT NULL, `answer` varchar (1024) DEFAULT NULL, `totalClicked` INT DEFAULT NULL, PRIMARY KEY (`pollID`, `letter`));
+	 * CREATE TABLE userResponses (`userID` varchar(400), `pollID` varchar(400), `letter` varchar(16));
 	 */
 	
 	
@@ -92,7 +99,7 @@ public class AdjustPollDatabase
 	 * Adds poll answers into answers table in polldb
 	 * Returns pollID
 	 */
-	public static String addNewPoll(Poll poll) {
+	public String addNewPoll(Poll poll) {
 		String response = ERROR_RESPONSE;
 		if (!checkValidPoll(poll))
 		{
@@ -116,7 +123,7 @@ public class AdjustPollDatabase
 		return response;
 	}
 	
-	private static boolean checkValidPoll(Poll poll) {
+	private boolean checkValidPoll(Poll poll) {
 		if (poll.getPollQuestion().equals("")) {
 			return false;
 		}
@@ -129,30 +136,30 @@ public class AdjustPollDatabase
 	}
 		
 	//Can be expanded upon later
-	private static void addPollToDatabase(Poll poll, String pollID) throws SQLException {
-		preparedStatement = connect.prepareStatement("INSERT INTO polldb.polls VALUES(?, ?, ?)");
+	private void addPollToDatabase(Poll poll, String pollID) throws SQLException {
+		preparedStatement = connect.prepareStatement("INSERT INTO polldb.polls VALUES(?, ?, ?, ?)");
 		preparedStatement.setString(1, pollID);
 		preparedStatement.setString(2, poll.getPollQuestion());
 		preparedStatement.setBoolean(3, poll.isPrivate());
+		preparedStatement.setString(4, poll.getCreatorID());
 		preparedStatement.executeUpdate();
 	}
 	
-	private static void addPollAnswersToDatabase(ArrayList<PollAnswer> pollAnswers, String pollID) throws SQLException {
+	private void addPollAnswersToDatabase(ArrayList<PollAnswer> pollAnswers, String pollID) throws SQLException {
 		//Goes through each answer to add into to database.
 		for(PollAnswer answer: pollAnswers) {
-			//1. pollID, 2. letter, 3. answer, 4. numClicked
-			preparedStatement = connect.prepareStatement("INSERT INTO polldb.answers VALUES(?, ?, ?, ?)");
+			//1. pollID, 2. letter, 3. answer
+			preparedStatement = connect.prepareStatement("INSERT INTO polldb.answers VALUES(?, ?, ?)");
 			preparedStatement.setString(1, pollID);
 			preparedStatement.setString(2, answer.getLetter());
 			preparedStatement.setString(3, answer.getAnswer());
-			preparedStatement.setInt(4, answer.getNumClicked());
 			preparedStatement.executeUpdate();
 			
 		}
 	}
 	
 	//Calls getPollFromID and returns the JSON
-	public static String returnPollJSONFromID(String pollID) {
+	public String returnPollJSONFromID(String pollID) {
 		String response = "";
 		try {
 			initializeDB();
@@ -174,7 +181,7 @@ public class AdjustPollDatabase
 	 * Gets all the pollAnswers by querying database
 	 * Makes a new Poll and returns the JSON form
 	 */
-	private static Poll getPollFromID(String pollID) throws SQLException, NoPollFoundException {
+	private Poll getPollFromID(String pollID) throws SQLException, NoPollFoundException {
 		
 		preparedStatement = connect.prepareStatement("SELECT * FROM polldb.polls WHERE pollID = ?");
 		preparedStatement.setString(1, pollID);
@@ -182,6 +189,7 @@ public class AdjustPollDatabase
 		results.next();
 		String pollQuestion = results.getString("pollQuestion"); 
 		boolean isPrivate = results.getBoolean("isPrivate");
+		String creatorID = results.getString("creatorID");
 		
 		if (pollQuestion.equals("")) { 
 			throw new NoPollFoundException(pollID);
@@ -189,24 +197,37 @@ public class AdjustPollDatabase
 		ArrayList<PollAnswer> answers = getPollAnswersFromID(pollID);
 		ArrayList<PollComment> comments = getPollCommentsFromID(pollID);
 		
-		return new Poll(pollID, pollQuestion, answers, comments, isPrivate);
+		return new Poll(creatorID, pollID, pollQuestion, answers, comments, isPrivate);
 	}
 	
-	private static ArrayList<PollAnswer> getPollAnswersFromID(String pollID) throws SQLException {
+	private ArrayList<PollAnswer> getPollAnswersFromID(String pollID) throws SQLException {
 		ArrayList<PollAnswer> answers = new ArrayList<PollAnswer>();
 		preparedStatement = connect.prepareStatement("SELECT * FROM polldb.answers WHERE pollID = ?");
 		preparedStatement.setString(1, pollID);
 		ResultSet results = preparedStatement.executeQuery();
+
+		preparedStatement = connect.prepareStatement("SELECT * FROM polldb.userresponses WHERE pollID = ?", ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_UPDATABLE);
+		preparedStatement.setString(1, pollID);
+		ResultSet userIDResults = preparedStatement.executeQuery();
 		while (results.next()) {
 			String letter = results.getString("letter");
 			String answerString = results.getString("answer");
-			int numClicked = results.getInt("totalClicked");
-			answers.add(new PollAnswer(letter, answerString, numClicked));
+			
+			ArrayList<String> userIDs = new ArrayList<String>();
+			
+			while(userIDResults.next()) {
+				if (userIDResults.getString("letter").equals(letter)) {
+					userIDs.add(userIDResults.getString("userID"));
+				}
+			}
+			userIDResults.beforeFirst();
+			
+			answers.add(new PollAnswer(letter, answerString, userIDs));
 		}
 		return answers;
 	}
 	
-	private static ArrayList<PollComment> getPollCommentsFromID(String pollID) throws SQLException {
+	private ArrayList<PollComment> getPollCommentsFromID(String pollID) throws SQLException {
 		ArrayList<PollComment> comments = new ArrayList<PollComment>();
 		preparedStatement = connect.prepareStatement("SELECT * FROM polldb.comments WHERE pollID = ?");
 		preparedStatement.setString(1, pollID);
@@ -221,23 +242,30 @@ public class AdjustPollDatabase
 	}
 	
 	
-	/*
-	 * Will be algorithmically taylored
-	 * Implement
-	 */
-	public static String getRandomListOfPolls() {
+	public String getRandomListOfPolls(String userID) {
 		String response = "";
 		try {
 			initializeDB();
-			//Just go through all
-			preparedStatement = connect.prepareStatement("SELECT * FROM polldb.polls WHERE isPrivate = ?");
+			ArrayList<String> userAlreadyRespondedPollIDs = new ArrayList<String>();
+			
+			preparedStatement = connect.prepareStatement("SELECT * FROM polldb.userresponses WHERE userID = ?");
+			preparedStatement.setString(1, userID);
+			ResultSet userRespondedPolls = preparedStatement.executeQuery();
+			
+			while(userRespondedPolls.next()) {
+				userAlreadyRespondedPollIDs.add(userRespondedPolls.getString("pollID"));
+			}
+			
+			preparedStatement = connect.prepareStatement("SELECT * FROM polldb.polls WHERE isPrivate = ? LIMIT 20");
 			preparedStatement.setBoolean(1, false);
 			ResultSet results = preparedStatement.executeQuery();
 			response = "{\"polls\": [";
 			while (results.next()) {
 				String pollID = results.getString("pollID");
-				String pollJSON = getPollFromID(pollID).toJSON();
-				response += pollJSON + ",";
+				if(!userAlreadyRespondedPollIDs.contains(pollID)) {
+					String pollJSON = getPollFromID(pollID).toJSON();
+					response += pollJSON + ",";	
+				}
 			}
 			response = response.substring(0, response.length() - 1);
 			response += "]}";
@@ -260,7 +288,7 @@ public class AdjustPollDatabase
 	 * Query database with each pollID, get polls and put them in arraylist,
 	 * make an jsonarray with the polls and return it in string form.
 	 */
-	public static String getPollsJSONFromPollIDs(ArrayList<String> pollIDs) {
+	public String getPollsJSONFromPollIDs(ArrayList<String> pollIDs) {
 		String response = "";
 		try {
 			ArrayList<Poll> polls = new ArrayList<Poll>();
@@ -278,53 +306,28 @@ public class AdjustPollDatabase
 		return response;
 	}
 	
-	public static String addOneCountToAnswer(PollAnswer pollAnswer) {
-		String response = "";
-		try {
-			initializeDB();
-			preparedStatement = connect.prepareStatement("UPDATE polldb.answers SET totalClicked = ? WHERE pollID = ? AND letter = ?;");
-			preparedStatement.setInt(1, pollAnswer.getNumClicked()+1);
-			preparedStatement.setString(2, pollAnswer.getID());
-			preparedStatement.setString(3, pollAnswer.getLetter());
-			preparedStatement.executeUpdate();
-			response = "ok";
-		} catch (ClassNotFoundException | SQLException e) {
-			for (int i = 0; i < e.getStackTrace().length; i++) 
-				response += e.getStackTrace()[i] + "\n";
-		} finally {
-			close();
-		}
-		return response;
-	}
 	
-	
-	public static String addComment(PollComment pollComment) {
+	public String addComment(PollComment pollComment) {
 		String response = "";
 		try {
 			initializeDB();
 			// Add Comment
-			preparedStatement = connect.prepareStatement("INSERT INTO polldb.comments VALUES(default, ?, ?, ?)");
+			preparedStatement = connect.prepareStatement("INSERT INTO polldb.comments VALUES(default, ?, ?, ?)", Statement.RETURN_GENERATED_KEYS);
 			preparedStatement.setString(1, pollComment.getPollID());
 			preparedStatement.setString(2, pollComment.getComment());
 			preparedStatement.setString(3, pollComment.getUser());
 			preparedStatement.executeUpdate();
-			response = "ok";
-		} catch (ClassNotFoundException | SQLException e) {
-			for (int i = 0; i < e.getStackTrace().length; i++) 
-				response += e.getStackTrace()[i] + "\n";
-		} finally {
-			close();
-		}
-		return response;
-	}
-	
-	public static String deletePoll(Poll poll) {
-		String response = "";
-		try {
-			initializeDB();
-			deletePollInfo(poll, "polls");
-			deletePollInfo(poll, "answers");
-			deletePollInfo(poll, "comments");
+			
+			try (ResultSet generatedKeys = preparedStatement.getGeneratedKeys()) {
+	            if (generatedKeys.next()) {
+	            	int id = generatedKeys.getInt(1);
+	            	response = String.valueOf(id);
+	            }
+	            else {
+	                throw new SQLException("No ID obtained.");
+	            }
+	        }
+			
 		} catch (ClassNotFoundException | SQLException e) {
 			e.printStackTrace();
 			for (int i = 0; i < e.getStackTrace().length; i++) 
@@ -335,13 +338,34 @@ public class AdjustPollDatabase
 		return response;
 	}
 	
-	public static void deletePollInfo(Poll poll, String table) throws SQLException {
+	public String deletePoll(String pollID) {
+		String response = "";
+		try {
+			initializeDB();
+			deletePollInfo(pollID, "polls");
+			deletePollInfo(pollID, "answers");
+			deletePollInfo(pollID, "comments");
+			deletePollInfo(pollID, "userresponses");
+			AdjustUsersDatabase usersDB = new AdjustUsersDatabase();
+			if (usersDB.deletePollFromUserPolls(pollID).equals("ok"))
+				response = "ok";
+		} catch (ClassNotFoundException | SQLException e) {
+			e.printStackTrace();
+			for (int i = 0; i < e.getStackTrace().length; i++) 
+				response += e.getStackTrace()[i] + "\n";
+		} finally {
+			close();
+		}
+		return response;
+	}
+	
+	public void deletePollInfo(String pollID, String table) throws SQLException {
 		preparedStatement = connect.prepareStatement("DELETE FROM polldb." + table + " WHERE pollID = ?");
-		preparedStatement.setString(1, poll.getPollID());
+		preparedStatement.setString(1, pollID);
 		preparedStatement.executeUpdate();
 	}
 	
-	public static String deleteComment(String commentIDString) {
+	public String deleteComment(String commentIDString) {
 		String response = "";
 		try {
 			initializeDB();
@@ -359,15 +383,51 @@ public class AdjustPollDatabase
 		return response;
 	}
 	
+	public String addUserResponseToPoll(String pollID, String userID, String letter) {
+		String response = "";
+		try {
+			initializeDB();
+			if (!userAnsweredAlready(pollID, userID)) {
+				addResponse(pollID, userID, letter);
+				response = "ok";
+			} else {
+				response = "duplicate";
+			}
+		} catch (ClassNotFoundException | SQLException e) {
+			e.printStackTrace();
+		} finally {
+			close();
+		}
+		return response;
+	}
+	
+	private boolean userAnsweredAlready(String pollID, String userID) throws SQLException {
+		preparedStatement = connect.prepareStatement("SELECT * FROM polldb.userresponses WHERE userID = ? AND pollID = ?");
+		preparedStatement.setString(1, userID);
+		preparedStatement.setString(2, pollID);
+		ResultSet results = preparedStatement.executeQuery();
+		if (results.isBeforeFirst()) return true;
+		return false;
+		
+	}
+	
+	private void addResponse(String pollID, String userID, String letter) throws SQLException {
+		preparedStatement = connect.prepareStatement("INSERT INTO polldb.userresponses VALUES(?, ?, ?)");
+		preparedStatement.setString(1, userID);
+		preparedStatement.setString(2, pollID);
+		preparedStatement.setString(3, letter);
+		preparedStatement.executeUpdate();
+	}
+	
 	//All methods must init the DB when starting up to establish a connection.
-	private static void initializeDB() throws ClassNotFoundException, SQLException {
+	private void initializeDB() throws ClassNotFoundException, SQLException {
 		Class.forName("com.mysql.cj.jdbc.Driver");
 		connect = DriverManager.getConnection("jdbc:mysql://" + SQL_DOMAIN + "/polldb", USERNAME, PASSWORD);
 		statement = connect.createStatement();
 	}
 	
 	//All must close the DB at the end to ensure no leakage.
-	private static void close() {
+	private void close() {
 		try {
 			if(resultSet != null) {
 				resultSet.close();

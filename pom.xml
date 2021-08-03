@@ -19,7 +19,21 @@
       </plugin>
     </plugins>
   </build>
+  
+  <dependencyManagement>
+  	<dependencies>
+     <dependency>
+    	<groupId>software.amazon.awssdk</groupId>
+    	<artifactId>bom</artifactId>
+    	<version>2.16.60</version>
+   		<type>pom</type>
+    	<scope>import</scope>
+	  </dependency>
+	</dependencies>
+  </dependencyManagement>
+  
   <dependencies>
+  
   	<!-- When upgrading/downgrading tomcat:
   	 	https://stackoverflow.com/questions/62927426/getting-java-lang-classnotfoundexception-jakarta-servlet-filter-on-maven-jersey 
   	 	3.0.0
@@ -61,5 +75,13 @@
 	    <artifactId>mail</artifactId>
 	    <version>1.5.0-b01</version>
 	</dependency>
+	
+	<!-- Set up for aws s3 sdk, check digitalocean -->
+	<dependency>
+	   	<groupId>software.amazon.awssdk</groupId>
+		<artifactId>s3</artifactId>	
+	</dependency>
+	
   </dependencies>
+  
 </project>

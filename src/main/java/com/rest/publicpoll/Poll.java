@@ -28,6 +28,7 @@ import org.json.JSONObject;
 
 public class Poll {
 
+	private String creatorID;
 	private String pollID;
 	private String pollQuestion;
 	private ArrayList<PollAnswer> answers;
@@ -35,7 +36,8 @@ public class Poll {
 	private boolean isPrivate;
 	
 	//All info available
-	public Poll(String pollID, String pollQuestion, ArrayList<PollAnswer> answers, ArrayList<PollComment> comments, boolean isPrivate) {
+	public Poll(String creatorID, String pollID, String pollQuestion, ArrayList<PollAnswer> answers, ArrayList<PollComment> comments, boolean isPrivate) {
+		this.creatorID = creatorID;
 		this.pollID = pollID;
 		this.pollQuestion = pollQuestion;
 		this.answers = answers;
@@ -44,11 +46,20 @@ public class Poll {
 	}
 
 	//First created, no pollID and no comments.
-	public Poll(String pollQuestion, ArrayList<PollAnswer> answers, boolean isPrivate) {
+	public Poll(String creatorID, String pollQuestion, ArrayList<PollAnswer> answers, boolean isPrivate) {
+		this.creatorID = creatorID;
 		this.pollQuestion = pollQuestion;
 		this.answers = answers;
 		this.comments = new ArrayList<PollComment>();
 		this.isPrivate = isPrivate;
+	}
+
+	public String getCreatorID() {
+		return creatorID;
+	}
+
+	public void setCreatorID(String creatorID) {
+		this.creatorID = creatorID;
 	}
 
 	public ArrayList<PollComment> getComments() {
@@ -92,9 +103,17 @@ public class Poll {
 		String poll = "{\"poll\":\"" + pollID + "\",\"question\":\"" + pollQuestion + "\",\"answers\": [";
 		for (int i = 0; i < answers.size(); i++) {
 			PollAnswer answer = answers.get(i);
+			String userIDsJSON = "";
+			for (int j = 0; j < answer.getUserIDs().size(); j++) {
+				userIDsJSON += "\"" + answer.getUserIDs().get(j) + "\",";
+			}
+			
+			if (userIDsJSON.length() > 0) 
+				userIDsJSON = userIDsJSON.substring(0, userIDsJSON.length() - 1);
+			
 			String pollAnswerJSON = "   {\"letter\": \"" + answer.getLetter() + "\","
 					+ "\"answer\": \"" + answer.getAnswer() + "\","
-					+ "\"numClicked\": " + answer.getNumClicked() + "},";
+					+ "\"users\":[" + userIDsJSON + "]},";
 			if (i == answers.size() - 1) {
 				poll += pollAnswerJSON.substring(0, pollAnswerJSON.length() - 1) + "";
 			} else {
@@ -114,26 +133,28 @@ public class Poll {
 				poll += pollCommentJSON;
 			}
 		}
-		poll += " ], \"isPrivate\": " + isPrivate + "}";
+		poll += " ], \"isPrivate\": " + isPrivate + ", \"creatorID\": \"" + creatorID + "\"}";
 		return poll;
 	}
 	
 	public static Poll fromJSON(String pollJSON) {
 		JSONObject pollJO = new JSONObject(pollJSON);
+		String creatorID = (String) pollJO.get("creatorID");
 		String pollID = (String) pollJO.get("poll");
 		String pollQuestion = (String) pollJO.get("question");
 		ArrayList<PollAnswer> answers = getAnswersFromJSON(pollJO, pollID);
 		ArrayList<PollComment> comments = getCommentsFromJSON(pollJO, pollID);
 		boolean isPrivate = pollJO.getBoolean("isPrivate");
-		return new Poll(pollID, pollQuestion, answers, comments, isPrivate);
+		return new Poll(creatorID, pollID, pollQuestion, answers, comments, isPrivate);
 	}
 	
 	public static Poll fromJSONCreation(String pollJSON) {
 		JSONObject pollJO = new JSONObject(pollJSON);
+		String creatorID = (String) pollJO.get("creatorID");
 		String pollQuestion = (String) pollJO.get("question");
 		ArrayList<PollAnswer> answers = getAnswersFromJSON(pollJO);
 		boolean isPrivate = pollJO.getBoolean("isPrivate");
-		return new Poll(pollQuestion, answers, isPrivate);
+		return new Poll(creatorID, pollQuestion, answers, isPrivate);
 	}
 	
 	public boolean isPrivate() {
@@ -149,10 +170,9 @@ public class Poll {
 		JSONArray answersJA = (JSONArray) pollJSON.get("answers");
 		for(int i = 0; i < answersJA.length(); i++) {
 			JSONObject answerJSON = answersJA.getJSONObject(i);
-			String letter = answerJSON.getString("letter");
-			String answer = answerJSON.getString("answer");
-			int numClicked = answerJSON.getInt("numClicked");
-			answersList.add(new PollAnswer(pollID, letter, answer, numClicked));
+			
+			
+			answersList.add(PollAnswer.fromJSON(answerJSON.toString()));
 		}
 		
 		return answersList;
@@ -166,8 +186,13 @@ public class Poll {
 			JSONObject answerJSON = answersJA.getJSONObject(i);
 			String letter = answerJSON.getString("letter");
 			String answer = answerJSON.getString("answer");
-			int numClicked = answerJSON.getInt("numClicked");
-			answersList.add(new PollAnswer(letter, answer, numClicked));
+			JSONArray ja = answerJSON.getJSONArray("users");
+			
+			ArrayList<String> userIDs = new ArrayList<String>();
+			for (int k = 0; k < ja.length(); k++) {
+				userIDs.add(ja.getString(k));
+			}
+			answersList.add(new PollAnswer(letter, answer, userIDs));
 		}
 		
 		return answersList;

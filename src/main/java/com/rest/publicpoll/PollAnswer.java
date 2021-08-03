@@ -2,6 +2,7 @@ package com.rest.publicpoll;
 
 import java.util.ArrayList;
 
+import org.json.JSONArray;
 import org.json.JSONObject;
 
 /*
@@ -16,7 +17,7 @@ public class PollAnswer {
 	private String pollID;
 	private String answer;
 	private String letter;
-	private int numClicked;
+	private ArrayList<String> userIDs;
 	
 	//Constructor designed for init of PollAnswer when 
 	public PollAnswer(String letter, String answer) {
@@ -24,17 +25,17 @@ public class PollAnswer {
 		this.answer = answer;
 	}
 	
-	public PollAnswer(String letter, String answer, int numClicked) {
+	public PollAnswer(String letter, String answer, ArrayList<String> userIDs) {
 		this.answer = answer;
 		this.letter = letter;
-		this.numClicked = numClicked;
+		this.userIDs = userIDs;
 	}
 	
-	public PollAnswer(String pollID, String letter, String answer, int numClicked) {
+	public PollAnswer(String pollID, String letter, String answer, ArrayList<String> userIDs) {
 		this.pollID = pollID;
 		this.answer = answer;
 		this.letter = letter;
-		this.numClicked = numClicked;
+		this.userIDs = userIDs;
 	}
 	
 	public String getID() {
@@ -61,21 +62,27 @@ public class PollAnswer {
 		this.letter = letter;
 	}
 
-	public int getNumClicked() {
-		return numClicked;
+	
+	public ArrayList<String> getUserIDs() {
+		return userIDs;
 	}
 
-	public void setNumClicked(int numClicked) {
-		this.numClicked = numClicked;
+	public void setUserIDs(ArrayList<String> userIDs) {
+		this.userIDs = userIDs;
 	}
-	
+
 	@Override
 	public String toString() {
-		return letter+") " + answer + ": " + numClicked;
+		return letter+") " + answer;
 	}
 	
 	public String toJSON() {
-		return "{\"pollID\": \"" + pollID + "\", \"letter\": \"" + letter + "\", \"answer\": \"" + answer + "\", \"numClicked\": " + numClicked + "}";
+		String json =  "{\"pollID\": \"" + pollID + "\", \"letter\": \"" + letter + "\", \"answer\": \"" + answer + "\", \"users\": [";
+		for (int i = 0; i < userIDs.size(); i++) {
+			json += "\"" + userIDs.get(i) + "\",";
+		}
+		return json.substring(0, json.length() - 1) + "]}";
+		
 	}
 	
 	public static PollAnswer fromJSON(String pollAnswerJSON) {
@@ -83,8 +90,13 @@ public class PollAnswer {
 		String pollID = pollAnswerJO.getString("pollID");
 		String letter = pollAnswerJO.getString("letter");
 		String answer = pollAnswerJO.getString("answer");
-		int numClicked = pollAnswerJO.getInt("numClicked");
-		return new PollAnswer(pollID, letter, answer, numClicked);
+		JSONArray ja = pollAnswerJO.getJSONArray("users");
+		
+		ArrayList<String> userIDs = new ArrayList<String>();
+		for (int i = 0; i < ja.length(); i++) {
+			userIDs.add(ja.getString(i));
+		}
+		return new PollAnswer(pollID, letter, answer, userIDs);
 	}
 	
 }

@@ -3,6 +3,7 @@ package com.rest.publicpoll.polls;
 import java.util.ArrayList;
 
 import javax.ws.rs.Consumes;
+import javax.ws.rs.DELETE;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
@@ -58,7 +59,8 @@ public class PollRestfulService
 	@GET
 	@Produces(MediaType.APPLICATION_JSON)
 	public Response getPollByID(@PathParam("id") String id) {
-		String jsonResponse = AdjustPollDatabase.returnPollJSONFromID(id);
+		AdjustPollDatabase database = new AdjustPollDatabase();
+		String jsonResponse = database.returnPollJSONFromID(id);
 		//Checks if response is JSON or error
 		if (jsonResponse.charAt(0) == '{') {
 			return Response.status(200).entity(jsonResponse).build();
@@ -73,19 +75,9 @@ public class PollRestfulService
 	@Consumes(MediaType.APPLICATION_JSON)
 	@Produces(MediaType.TEXT_PLAIN)
 	public Response createPoll(String pollJSON) {
+		AdjustPollDatabase database = new AdjustPollDatabase();
 		Poll poll = Poll.fromJSONCreation(pollJSON);
-		String jsonResponse = AdjustPollDatabase.addNewPoll(poll);
-		return Response.status(201).entity(jsonResponse).build();
-	}
-	
-	@Path("/addSelection")
-	@POST
-	@Consumes(MediaType.APPLICATION_JSON)
-	@Produces(MediaType.APPLICATION_JSON)
-	public Response addPollSelection(String pollAnswerJSON) {
-		PollAnswer pollAnswer = PollAnswer.fromJSON(pollAnswerJSON);
-		//Add more once User is completed
-		String jsonResponse = AdjustPollDatabase.addOneCountToAnswer(pollAnswer);
+		String jsonResponse = database.addNewPoll(poll);
 		return Response.status(201).entity(jsonResponse).build();
 	}
 	
@@ -94,24 +86,34 @@ public class PollRestfulService
 	@Consumes(MediaType.APPLICATION_JSON)
 	@Produces(MediaType.APPLICATION_JSON)
 	public Response addComment(String pollCommentJSON) {
+		AdjustPollDatabase database = new AdjustPollDatabase();
 		PollComment comment = PollComment.fromJSON(pollCommentJSON);
-		String jsonResponse = AdjustPollDatabase.addComment(comment);
+		String jsonResponse = database.addComment(comment);
 		return Response.status(201).entity(jsonResponse).build();
 	}
 	
-	@Path("/deleteComment")
-	@POST
-	@Consumes(MediaType.TEXT_PLAIN)
+	@Path("/deleteComment/{id}")
+	@DELETE
 	@Produces(MediaType.TEXT_PLAIN)
-	public Response deleteComment(String id) {
-		return Response.status(201).entity(AdjustPollDatabase.deleteComment(id)).build();
+	public Response deleteComment(@PathParam("id") String id) {
+		AdjustPollDatabase database = new AdjustPollDatabase();
+		return Response.status(202).entity(database.deleteComment(id)).build();
 	}
 	
-	@Path("/getPolls")
+	@Path("/deletePoll/{id}")
+	@DELETE
+	@Produces(MediaType.TEXT_PLAIN)
+	public Response deletePoll(@PathParam("id") String id) {
+		AdjustPollDatabase database = new AdjustPollDatabase();
+		return Response.status(202).entity(database.deletePoll(id)).build();
+	}
+	
+	@Path("/getPolls/{userID}")
 	@GET
 	@Produces(MediaType.APPLICATION_JSON)
-	public Response getPolls() {
-		String jsonResponse = AdjustPollDatabase.getRandomListOfPolls();
+	public Response getPolls(@PathParam("userID") String userID) {
+		AdjustPollDatabase database = new AdjustPollDatabase();
+		String jsonResponse = database.getRandomListOfPolls(userID);
 		return Response.status(200).entity(jsonResponse).build();
 	}
 	
@@ -121,14 +123,30 @@ public class PollRestfulService
 	@Consumes(MediaType.APPLICATION_JSON)
 	@Produces(MediaType.APPLICATION_JSON)
 	public Response getPollsFromPollIDs(String pollIDsJSON) { 
+		AdjustPollDatabase database = new AdjustPollDatabase();
 		ArrayList<String> pollIDs = new ArrayList<String>();
 		JSONObject jo = new JSONObject(pollIDsJSON);
 		JSONArray ja = (JSONArray) jo.get("pollIDs");
 		for (int i = 0; i < ja.length(); i++) {
 			pollIDs.add(ja.getString(i));
 		}
-		String jsonResponse = AdjustPollDatabase.getPollsJSONFromPollIDs(pollIDs);
+		String jsonResponse = database.getPollsJSONFromPollIDs(pollIDs);
 		return Response.status(201).entity(jsonResponse).build();
+		
+	}
+	
+	@Path("/addUserResponseToPoll")
+	@POST
+	@Consumes(MediaType.APPLICATION_JSON)
+	@Produces(MediaType.APPLICATION_JSON)
+	public Response addUserResponseToPoll(String json) {
+		JSONObject jo = new JSONObject(json);
+		String pollID = jo.getString("pollID");
+		String userID = jo.getString("userID");
+		String letter = jo .getString("letter");
+		
+		AdjustPollDatabase database = new AdjustPollDatabase();
+		return Response.status(201).entity(database.addUserResponseToPoll(pollID, userID, letter)).build();
 		
 	}
 	
