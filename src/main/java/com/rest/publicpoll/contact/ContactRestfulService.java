@@ -32,7 +32,7 @@ public class ContactRestfulService {
 	}
 	
 	public String sendEmail(String sender, String recipiant, String msg) {
-		String password = "alexWa0720@alex!";
+		String password = "**********";
 		
         Properties prop = new Properties();
         prop.put("mail.smtp.host", "smtp.gmail.com");
