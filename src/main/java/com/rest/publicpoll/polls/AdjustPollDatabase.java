@@ -19,7 +19,7 @@ import com.rest.publicpoll.PollComment;
 import com.rest.publicpoll.users.AdjustUsersDatabase;
 
 /*
- * Copyright © 2021 Alexander Aghili - All Rights Reserved
+ * Copyright Â© 2021 Alexander Aghili - All Rights Reserved
  * Unauthorized copying of this file, via any medium is strictly prohibited
  * Proprietary and confidential
  * Written by Alexander Aghili alexander.w.aghili@gmail.com, May 2021
@@ -48,7 +48,7 @@ public class AdjustPollDatabase
 	
 	//Values are hidden, if using, put in appropriate username and password
 	private final String USERNAME = "root";
-	private final String PASSWORD = "alexWa0720";
+	private final String PASSWORD = "*******";
 	//Sql domain, in this case is the AWS, could be localhost.
 	private final String SQL_DOMAIN = "localhost:3306";
 	
