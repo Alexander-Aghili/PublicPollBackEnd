@@ -1,6 +1,6 @@
 package com.rest.publicpoll.users;
 /*
- * Copyright © 2021 Alexander Aghili - All Rights Reserved
+ * Copyright Â© 2021 Alexander Aghili - All Rights Reserved
  * Unauthorized copying of this file, via any medium is strictly prohibited
  * Proprietary and confidential
  * Written by Alexander Aghili alexander.w.aghili@gmail.com, June 2021
@@ -38,7 +38,7 @@ public class AdjustUsersDatabase
 	
 	//Values are hidden, if using, put in appropriate username and password
 	private final String USERNAME = "root";
-	private final String PASSWORD = "alexWa0720";
+	private final String PASSWORD = "*******";
 	private final String SQL_DOMAIN = "localhost:3306";
 	
 	private final int ID_LENGTH = 12;
