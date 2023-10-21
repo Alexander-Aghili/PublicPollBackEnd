@@ -62,4 +62,4 @@ The backend of the Public Poll Mobile App provides the necessary services and AP
 
 - **Settings:** Users can customize their profile information and app theme through the settings.
 
-For more details about the frontend and how it interacts with the backend, please refer to the [Frontend README](https://github.com/Alexander-Aghili/PublicPollAppFrontEnd/README.md) in the linked GitHub repository.
+For more details about the frontend and how it interacts with the backend, please refer to the [Frontend README](https://github.com/Alexander-Aghili/PublicPollAppFrontEnd/blob/main/README.md) in the linked GitHub repository.
