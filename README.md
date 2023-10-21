@@ -40,7 +40,7 @@ To set up and run the backend of the Public Poll Mobile App, follow these steps:
 6. **Deployment:**
 
    - Deploy the backend on a server or cloud service like Digital Ocean.
-   - Optionally set up a proxy layer in front of Tomcat, such as nginx, to provide SSL certficiate functionality. 
+   - Optionally set up a proxy layer in front of Tomcat, such as nginx, to provide SSL certificate functionality. 
 
 7. **Testing and Debugging:**
 
