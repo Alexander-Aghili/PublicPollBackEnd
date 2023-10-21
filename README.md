@@ -1,4 +1,4 @@
-# Public Poll Mobile App - Backend README
+# Public Poll Mobile App - Backend
 
 This is the README for the backend of the "Public Poll Mobile App." The backend serves as the server-side component responsible for managing user accounts, polls, and various interactions within the mobile application. Below, you'll find information about the technologies used, how the backend works, and how to set it up.
 
